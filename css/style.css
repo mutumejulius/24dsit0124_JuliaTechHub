@@ -1,0 +1,217 @@
+/* 1. Root Variables & Reset */
+:root {
+    --maroon: #800000;
+    --maroon-dark: #660000;
+    --blue-black: #1a1a2e; /* Our new accent color */
+    --white: #ffffff;
+    --black: #000000;
+    --light-bg: #f8fafc;
+    --text-main: #0f172a;
+    --text-muted: #475569;
+    --border-color: #e2e8f0;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: var(--text-main);
+    background-color: var(--white);
+}
+
+/* 2. Navigation */
+nav {
+    background-color: var(--maroon);
+    color: var(--white);
+    padding: 1rem 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 60px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 800;
+    font-size: 1.5rem;
+    text-transform: uppercase;
+}
+
+.logo-icon {
+    background: white;
+    color: var(--maroon);
+    width: 35px;
+    height: 35px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 4px;
+}
+
+/* --- Navigation Links & Hover Fix --- */
+.nav-links {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.nav-links a {
+    color: var(--white) !important; /* Keep white for visibility on Maroon */
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    position: relative;
+    padding-bottom: 5px;
+}
+
+.nav-links a:hover {
+    transform: translateY(-2px);
+    opacity: 1; /* Keep text fully visible */
+}
+
+/* The Blue-Black Underline Effect */
+.nav-links a::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 3px;
+    bottom: 0;
+    left: 0;
+    background-color: var(--blue-black);
+    transition: width 0.3s ease;
+}
+
+.nav-links a:hover::after {
+    width: 100%;
+}
+
+/* --- Updated Buttons Section --- */
+
+.btn-login {
+    padding: 8px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--white) !important;
+    transition: 0.3s;
+}
+
+.btn-login:hover {
+    background: var(--blue-black) !important;
+    border-color: var(--blue-black) !important;
+    color: var(--white) !important;
+}
+
+.btn-hero {
+    background: var(--maroon);
+    color: var(--white) !important;
+    padding: 15px 35px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+    display: inline-block;
+    transition: 0.3s;
+    border: 2px solid var(--maroon);
+}
+
+.btn-hero:hover {
+    background: var(--blue-black) !important;
+    border-color: var(--blue-black) !important;
+    transform: scale(1.05);
+}
+
+/* 3. Hero Section */
+.hero {
+    padding: 80px 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--light-bg);
+}
+
+.hero h1 {
+    font-size: 3.5rem;
+    margin-bottom: 20px;
+    font-weight: 900;
+}
+
+.hero p {
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    max-width: 800px;
+    margin: 0 auto 40px;
+}
+
+.maroon-underline {
+    border-bottom: 5px solid var(--maroon);
+}
+
+/* 4. Grid System */
+.section-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 60px 20px;
+}
+
+.grid-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+.service-card {
+    padding: 40px;
+    background: var(--light-bg);
+    border-left: 5px solid var(--maroon);
+}
+
+.hof-card {
+    background: white;
+    padding: 30px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    transition: 0.3s;
+}
+
+.hof-card:hover {
+    border-color: var(--maroon);
+    transform: translateY(-5px);
+}
+
+/* 5. Footer */
+footer {
+    background: var(--black);
+    color: white;
+    padding: 60px 20px 20px;
+}
+
+.footer-grid {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 50px;
+}
+
+.footer-bottom {
+    text-align: center;
+    margin-top: 50px;
+    padding-top: 20px;
+    border-top: 1px solid #333;
+    font-size: 0.8rem;
+    color: #666;
+}
