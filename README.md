@@ -33,6 +33,7 @@ Click 'Go' to import
 ##Admin log in credentials:
 
 email:   mutumejuliusj256@gmail.com
+
 password:  juliatech100
 
 GitHub repository link: https://github.com/mutumejulius/24dsit0124_JuliaTechHub
