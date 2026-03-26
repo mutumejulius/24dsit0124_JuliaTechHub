@@ -8,6 +8,39 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 'admin') {
     exit();
 }
 
+// --- NEW: Handle News Submission (Upload & Edit) ---
+if (isset($_POST['publish_news'])) {
+    $title = mysqli_real_escape_string($conn, $_POST['news_title']);
+    $content = mysqli_real_escape_string($conn, $_POST['news_content']);
+    $media_type = $_POST['media_type'];
+    $news_id = $_POST['news_id'];
+    
+    $file_path = $_POST['existing_path']; // Default to old path if editing
+    
+    if (!empty($_FILES['news_file']['name'])) {
+        $target_dir = "uploads/news/";
+        if (!is_dir($target_dir)) mkdir($target_dir, 0777, true);
+        $file_path = $target_dir . time() . "_" . basename($_FILES['news_file']['name']);
+        move_uploaded_file($_FILES['news_file']['tmp_name'], $file_path);
+    }
+
+    if (!empty($news_id)) {
+        $conn->query("UPDATE news SET title='$title', content='$content', media_url='$file_path', media_type='$media_type' WHERE id='$news_id'");
+    } else {
+        $conn->query("INSERT INTO news (title, content, media_url, media_type) VALUES ('$title', '$content', '$file_path', '$media_type')");
+    }
+    header("Location: admin_dashboard.php?msg=news_updated");
+    exit();
+}
+
+// --- NEW: Handle News Deletion ---
+if (isset($_GET['delete_news'])) {
+    $nid = mysqli_real_escape_string($conn, $_GET['delete_news']);
+    $conn->query("DELETE FROM news WHERE id = '$nid'");
+    header("Location: admin_dashboard.php");
+    exit();
+}
+
 // 1. Handle Broadcast Logic
 if (isset($_POST['send_broadcast'])) {
     $msg = mysqli_real_escape_string($conn, $_POST['broadcast_msg']);
@@ -68,11 +101,9 @@ $total_innovators = $conn->query("SELECT id FROM users WHERE role='innovator'")-
         .badge { background: #e74c3c; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 50%; position: absolute; right: 10px; }
         .main-content { margin-left: 260px; flex: 1; padding: 40px; }
         
-        /* Stats Grid */
         .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .stat-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; }
         
-        /* Table Styles */
         .admin-table { width: 100%; background: white; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .admin-table th { background: var(--maroon); color: white; padding: 15px; text-align: left; }
         .admin-table td { padding: 15px; border-bottom: 1px solid #eee; }
@@ -86,6 +117,11 @@ $total_innovators = $conn->query("SELECT id FROM users WHERE role='innovator'")-
         .is-featured { background: var(--maroon); color: white; border-color: var(--maroon); }
         
         .broadcast-box { background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px; border-left: 5px solid var(--maroon); }
+
+        /* NEW: News Section Styles */
+        .news-form-container { background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px; border-left: 5px solid #27ae60; }
+        .news-input-field { padding: 10px; border-radius: 5px; border: 1px solid #ddd; width: 100%; margin-bottom: 10px; font-family: inherit; }
+        .news-item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; background: #fafafa; margin-top: 5px; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -131,6 +167,48 @@ $total_innovators = $conn->query("SELECT id FROM users WHERE role='innovator'")-
             </form>
         </div>
 
+        <div class="news-form-container">
+            <h3><i class="fas fa-newspaper"></i> Manage Slide Show News</h3>
+            <form method="POST" enctype="multipart/form-data" style="margin-top: 15px;">
+                <input type="hidden" name="news_id" id="news_id">
+                <input type="hidden" name="existing_path" id="existing_path">
+                
+                <input type="text" name="news_title" id="form_title" placeholder="News Headline" required class="news-input-field">
+                <textarea name="news_content" id="form_content" placeholder="News Details..." required class="news-input-field" style="height:80px;"></textarea>
+                
+                <div style="display:flex; gap:15px; margin-bottom:15px;">
+                    <select name="media_type" id="form_type" class="news-input-field" style="width:150px;">
+                        <option value="image">Image</option>
+                        <option value="video">Video</option>
+                    </select>
+                    <input type="file" name="news_file" class="news-input-field">
+                </div>
+                <button type="submit" name="publish_news" class="btn-hero" style="border:none; cursor:pointer; width: 100%;">Save News Bit</button>
+            </form>
+
+            <div style="margin-top: 25px;">
+                <h4>Published News Bits</h4>
+                <?php
+                $news_list = $conn->query("SELECT * FROM news ORDER BY id DESC");
+                if($news_list->num_rows > 0):
+                    while($nb = $news_list->fetch_assoc()):
+                ?>
+                <div class="news-item-row">
+                    <span><strong><?php echo $nb['title']; ?></strong> <small>(<?php echo strtoupper($nb['media_type']); ?>)</small></span>
+                    <div>
+                        <button onclick='editNews(<?php echo json_encode($nb, JSON_HEX_APOS); ?>)' style="color:blue; border:none; background:none; cursor:pointer; margin-right:10px;"><i class="fas fa-edit"></i> Edit</button>
+                        <a href="admin_dashboard.php?delete_news=<?php echo $nb['id']; ?>" style="color:red; text-decoration:none;" onclick="return confirm('Delete news bit?')"><i class="fas fa-trash"></i></a>
+                    </div>
+                </div>
+                <?php 
+                    endwhile; 
+                else:
+                    echo "<p style='color:#999; margin-top:10px;'>No news bits uploaded yet.</p>";
+                endif;
+                ?>
+            </div>
+        </div>
+
         <table class="admin-table">
             <thead>
                 <tr>
@@ -167,5 +245,17 @@ $total_innovators = $conn->query("SELECT id FROM users WHERE role='innovator'")-
             </tbody>
         </table>
     </div>
+
+    <script>
+    function editNews(data) {
+        document.getElementById('news_id').value = data.id;
+        document.getElementById('existing_path').value = data.media_url;
+        document.getElementById('form_title').value = data.title;
+        document.getElementById('form_content').value = data.content;
+        document.getElementById('form_type').value = data.media_type;
+        // Scroll to form
+        window.scrollTo({ top: 400, behavior: 'smooth' });
+    }
+    </script>
 </body>
 </html>

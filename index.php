@@ -12,6 +12,16 @@
         .nav-links a:hover { color: var(--maroon); border-bottom: 2px solid var(--maroon); }
         .footer-grid a { color: #ccc; text-decoration: none; transition: 0.3s; }
         .footer-grid a:hover { color: white; padding-left: 5px; }
+
+        /* News Slider Styles */
+        .slider-wrapper { position: relative; max-width: 1000px; margin: 0 auto; overflow: hidden; border-radius: 15px; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+        .news-slide { display: none; padding: 25px; text-align: center; animation: slideEffect 0.8s ease-in-out; }
+        .news-media-container { width: 100%; height: 450px; background: #000; border-radius: 10px; overflow: hidden; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; }
+        .news-media-container img, .news-media-container video { width: 100%; height: 100%; object-fit: cover; }
+        .slider-nav { position: absolute; top: 50%; width: 100%; display: flex; justify-content: space-between; transform: translateY(-50%); pointer-events: none; padding: 0 10px; }
+        .slider-nav button { pointer-events: auto; background: rgba(128, 0, 0, 0.8); color: white; border: none; width: 45px; height: 45px; cursor: pointer; border-radius: 50%; font-size: 1.2rem; transition: 0.3s; }
+        .slider-nav button:hover { background: var(--maroon); transform: scale(1.1); }
+        @keyframes slideEffect { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
     </style>
 </head>
 <body>
@@ -25,6 +35,7 @@
             <div class="nav-links">
                 <a href="about.php">About</a>
                 <a href="#services">Programs</a>
+                <a href="#news-feed">News</a>
                 <a href="#hall-of-fame">Showcase</a>
                 <a href="login.php" class="btn-login">Login</a>
                 <a href="register.php" class="btn-hero">Register Now</a>
@@ -56,6 +67,41 @@
                 <h3>Innovation Showcase</h3>
                 <p>Secure a spot in our Hall of Fame annually and gain global exposure.</p>
             </div>
+        </div>
+    </section>
+
+    <section id="news-feed" class="section-container" style="background: #fff; padding-top: 20px;">
+        <h2 style="text-align: center; color: var(--maroon); margin-bottom: 30px;">Hub Updates</h2>
+        <div class="slider-wrapper">
+            <?php
+            $news_sql = "SELECT * FROM news ORDER BY created_at DESC";
+            $news_res = $conn->query($news_sql);
+
+            if ($news_res && $news_res->num_rows > 0) {
+                while($item = $news_res->fetch_assoc()) {
+                    echo '<div class="news-slide">';
+                        echo '<div class="news-media-container">';
+                            if ($item['media_type'] == 'video') {
+                                echo '<video src="'.$item['media_url'].'" controls></video>';
+                            } else {
+                                echo '<img src="'.$item['media_url'].'" alt="News Image">';
+                            }
+                        echo '</div>';
+                        echo '<h3 style="color: var(--maroon); margin-bottom: 10px;">'.htmlspecialchars($item['title']).'</h3>';
+                        echo '<p style="color: #444; max-width: 800px; margin: 0 auto;">'.htmlspecialchars($item['content']).'</p>';
+                    echo '</div>';
+                }
+                echo '<div class="slider-nav">
+                        <button onclick="moveSlide(-1)">&#10094;</button>
+                        <button onclick="moveSlide(1)">&#10095;</button>
+                      </div>';
+            } else {
+                echo '<div style="text-align: center; padding: 60px; color: #999;">
+                        <i class="far fa-newspaper" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                        <p>No news to published at the moment</p>
+                      </div>';
+            }
+            ?>
         </div>
     </section>
 
@@ -120,5 +166,29 @@
         </div>
     </footer>
 
+    <script>
+        let slideIndex = 0;
+        const slides = document.querySelectorAll(".news-slide");
+
+        function showNews() {
+            if (slides.length === 0) return;
+            slides.forEach(s => s.style.display = "none");
+            slideIndex++;
+            if (slideIndex > slides.length) slideIndex = 1;
+            slides[slideIndex - 1].style.display = "block";
+            setTimeout(showNews, 4000); // 4 second interval
+        }
+
+        function moveSlide(n) {
+            slideIndex += n - 1;
+            if (slideIndex < 0) slideIndex = slides.length - 1;
+            if (slideIndex >= slides.length) slideIndex = 0;
+            
+            slides.forEach(s => s.style.display = "none");
+            slides[slideIndex].style.display = "block";
+        }
+
+        document.addEventListener("DOMContentLoaded", showNews);
+    </script>
 </body>
 </html>
