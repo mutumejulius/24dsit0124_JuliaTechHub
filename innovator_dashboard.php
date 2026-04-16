@@ -10,18 +10,24 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 'innovator') {
 
 $user_id = $_SESSION['user_id'];
 
-// --- HANDLE MENTOR MESSAGE SUBMISSION ---
+// --- HANDLE MENTOR MESSAGE SUBMISSION (With Redirect to prevent duplicates) ---
 if (isset($_POST['send_mentor_msg'])) {
     $msg_content = mysqli_real_escape_string($conn, $_POST['mentor_query']);
     $sender_name = mysqli_real_escape_string($conn, $_SESSION['user_name']);
     
-    // Inserting into notifications table as a query for the admin to see
     $sql_msg = "INSERT INTO notifications (user_id, message, type, is_read, created_at) 
                 VALUES ('$user_id', 'Support Request from $sender_name: $msg_content', 'mentor_query', 0, NOW())";
     
     if ($conn->query($sql_msg)) {
-        $msg_sent = "Your message has been sent to the Hub mentors!";
+        // Redirect back to same page with a success parameter
+        header("Location: innovator_dashboard.php?msg=sent");
+        exit();
     }
+}
+
+// Check for success message from redirect
+if (isset($_GET['msg']) && $_GET['msg'] == 'sent') {
+    $msg_sent = "Your message has been sent to the Hub mentors!";
 }
 
 // Fetch User's Innovation Details
@@ -46,24 +52,21 @@ $innovation = $result->fetch_assoc();
         .sidebar-menu li { margin-bottom: 15px; }
         .sidebar-menu a { color: white; text-decoration: none; display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 5px; transition: 0.3s; }
         .sidebar-menu a:hover, .sidebar-menu a.active { background: rgba(255,255,255,0.2); }
-        
         .main-content { margin-left: 260px; flex: 1; padding: 40px; box-sizing: border-box; }
         .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        
         .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 40px; }
         .stat-card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border-top: 4px solid var(--maroon); }
         .stat-card small { color: #888; text-transform: uppercase; font-size: 0.7rem; font-weight: bold; }
-        
         .progress-container { background: white; padding: 30px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .status-badge { padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
         .status-pending { background: #fff3cd; color: #856404; }
         .status-approved { background: #d4edda; color: #155724; }
-
-        /* Modal Styles */
         .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; justify-content:center; align-items:center; }
         .modal-content { background:white; padding:30px; border-radius:12px; width:450px; position:relative; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
         .btn-hero { background: var(--maroon); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
         .btn-hero:hover { background: #a00000; }
+        .feedback-item { background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee; border-left: 4px solid #ddd; }
+        .feedback-replied { border-left-color: var(--maroon); background: #fff9f9; }
     </style>
 </head>
 <body>
@@ -144,30 +147,37 @@ $innovation = $result->fetch_assoc();
                 <h4 style="color: var(--maroon);"><i class="fas fa-user-graduate"></i> Mentor Advice & Feedback</h4>
                 <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
                 <?php
-                // Fetches specifically 'admin_msg' types or old-style 'reply_message' columns
+                // Fetch both admin messages and user's own queries (to show pending ones)
                 $feedback = $conn->query("SELECT * FROM notifications 
                                          WHERE user_id = '$user_id' 
-                                         AND (type = 'admin_msg' OR reply_message IS NOT NULL) 
+                                         AND (type = 'admin_msg' OR type = 'mentor_query') 
                                          ORDER BY created_at DESC LIMIT 5");
 
                 if ($feedback && $feedback->num_rows > 0) {
                     while($f = $feedback->fetch_assoc()) {
-                        // Priority given to the 'message' column for the new admin reply system
-                        $display_text = !empty($f['message']) ? $f['message'] : $f['reply_message'];
-                        $display_date = !empty($f['created_at']) ? $f['created_at'] : $f['replied_at'];
+                        $has_reply = !empty($f['reply_message']);
+                        $card_class = $has_reply ? 'feedback-replied' : '';
                         
                         echo "
-                        <div style='background: #fff9f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffebeb;'>
-                            <small style='color: #888;'><i class='fas fa-clock'></i> ".date('M d, g:i a', strtotime($display_date))."</small>
-                            <p style='margin-top: 5px; font-weight: bold; color: #333;'>Official Hub Response:</p>
-                            <p style='font-size: 0.9rem; color: #555; line-height:1.4;'>".nl2br(htmlspecialchars($display_text))."</p>
-                        </div>";
+                        <div class='feedback-item $card_class'>
+                            <small style='color: #888;'><i class='fas fa-clock'></i> ".date('M d, g:i a', strtotime($f['created_at']))."</small>
+                            <p style='margin-top: 5px; font-size: 0.9rem; color: #555;'>
+                                <strong>Your Query:</strong> ".htmlspecialchars(str_replace("Support Request from ".$_SESSION['user_name'].": ", "", $f['message']))."
+                            </p>";
+                        
+                        if ($has_reply) {
+                            echo "
+                            <div style='margin-top: 10px; border-top: 1px dashed #ddd; padding-top: 10px;'>
+                                <p style='font-weight: bold; color: var(--maroon); margin-bottom: 2px;'>Official Hub Response:</p>
+                                <p style='font-size: 0.9rem; color: #333; line-height:1.4;'>".nl2br(htmlspecialchars($f['reply_message']))."</p>
+                            </div>";
+                        } else {
+                            echo "<p style='font-size: 0.8rem; color: #f39c12; font-style: italic; margin-top:5px;'><i class='fas fa-hourglass-half'></i> Pending mentor review...</p>";
+                        }
+                        echo "</div>";
                     }
                 } else {
-                    echo "<div style='text-align:center; padding: 20px;'>
-                            <i class='fas fa-comment-slash' style='color:#ddd; font-size: 2rem;'></i>
-                            <p style='color:#999; font-size:0.85rem; margin-top:10px;'>No direct feedback from mentors yet.</p>
-                          </div>";
+                    echo "<div style='text-align:center; padding: 20px;'><i class='fas fa-comment-slash' style='color:#ddd; font-size: 2rem;'></i><p style='color:#999; font-size:0.85rem; margin-top:10px;'>No inquiries yet.</p></div>";
                 }
                 ?>
                 <div style="text-align: center; margin-top: 10px; border-top: 1px solid #eee; padding-top: 15px;">
@@ -193,8 +203,6 @@ $innovation = $result->fetch_assoc();
     <script>
         function openMentorModal() { document.getElementById('mentorModal').style.display = 'flex'; }
         function closeMentorModal() { document.getElementById('mentorModal').style.display = 'none'; }
-        
-        // Close modal if user clicks outside of it
         window.onclick = function(event) {
             let modal = document.getElementById('mentorModal');
             if (event.target == modal) { modal.style.display = "none"; }

@@ -2,8 +2,10 @@
 include 'db.php';
 session_start();
 
-// Security: Only allow Admins
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 'admin') {
+/** * --- ACCESS CONTROL REFINEMENT ---
+ * Checks both existence of session and specific role.
+ */
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     header("Location: login.php");
     exit();
 }
@@ -15,7 +17,7 @@ if (isset($_POST['publish_news'])) {
     $media_type = $_POST['media_type'];
     $news_id = $_POST['news_id'];
     
-    $file_path = $_POST['existing_path']; // Default to old path if editing
+    $file_path = $_POST['existing_path']; 
     
     if (!empty($_FILES['news_file']['name'])) {
         $target_dir = "uploads/news/";
@@ -73,6 +75,10 @@ if (isset($_GET['delete_id'])) {
 $unread_query = $conn->query("SELECT COUNT(*) as total FROM notifications WHERE type='mentor_query' AND is_read=0");
 $unread_count = $unread_query->fetch_assoc()['total'];
 
+// --- NEW: Pending Funding Count ---
+$pending_funding_query = $conn->query("SELECT COUNT(*) as total FROM funding_applications WHERE status='Pending'");
+$pending_funding_count = $pending_funding_query->fetch_assoc()['total'];
+
 $approved_res = $conn->query("SELECT COUNT(*) as total FROM innovations WHERE status = 'approved'");
 $approved_count = $approved_res->fetch_assoc()['total'];
 
@@ -98,7 +104,8 @@ $total_innovators = $conn->query("SELECT id FROM users WHERE role='innovator'")-
         .nav-links a:hover, .nav-links a.active { color: white; background: rgba(255,255,255,0.05); border-radius: 5px; }
         .nav-links a.active { border-left: 4px solid var(--maroon); }
         
-        .badge { background: #e74c3c; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 50%; position: absolute; right: 10px; }
+        /* Revised Badge Style for better visibility */
+        .badge { background: #e74c3c; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; position: absolute; right: 10px; font-weight: bold; }
         .main-content { margin-left: 260px; flex: 1; padding: 40px; }
         
         .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
@@ -118,7 +125,6 @@ $total_innovators = $conn->query("SELECT id FROM users WHERE role='innovator'")-
         
         .broadcast-box { background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px; border-left: 5px solid var(--maroon); }
 
-        /* NEW: News Section Styles */
         .news-form-container { background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px; border-left: 5px solid #27ae60; }
         .news-input-field { padding: 10px; border-radius: 5px; border: 1px solid #ddd; width: 100%; margin-bottom: 10px; font-family: inherit; }
         .news-item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; background: #fafafa; margin-top: 5px; border-radius: 4px; }
@@ -131,6 +137,9 @@ $total_innovators = $conn->query("SELECT id FROM users WHERE role='innovator'")-
         <ul class="nav-links">
             <li><a href="admin_dashboard.php" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
             <li><a href="admin_inbox.php"><i class="fas fa-envelope"></i> Support Inbox <?php if($unread_count > 0) echo "<span class='badge'>$unread_count</span>"; ?></a></li>
+            
+            <li><a href="admin_funding.php"><i class="fas fa-hand-holding-usd"></i> Funding Requests <?php if($pending_funding_count > 0) echo "<span class='badge'>$pending_funding_count</span>"; ?></a></li>
+            
             <li><a href="admin_training.php"><i class="fas fa-graduation-cap"></i> Training CMS</a></li>
             <li><a href="logout.php" style="margin-top: 50px; color: #ff7675;"><i class="fas fa-power-off"></i> Logout</a></li>
         </ul>
@@ -150,8 +159,8 @@ $total_innovators = $conn->query("SELECT id FROM users WHERE role='innovator'")-
                 <h2><?php echo $pending_count; ?></h2>
             </div>
             <div class="stat-card" style="border-top: 4px solid var(--maroon);">
-                <small>Total Innovators</small>
-                <h2><?php echo $total_innovators; ?></h2>
+                <small>Pending Funding</small>
+                <h2><?php echo $pending_funding_count; ?></h2>
             </div>
             <div class="stat-card" style="border-top: 4px solid #3498db;">
                 <small>Unread Queries</small>
@@ -253,7 +262,6 @@ $total_innovators = $conn->query("SELECT id FROM users WHERE role='innovator'")-
         document.getElementById('form_title').value = data.title;
         document.getElementById('form_content').value = data.content;
         document.getElementById('form_type').value = data.media_type;
-        // Scroll to form
         window.scrollTo({ top: 400, behavior: 'smooth' });
     }
     </script>
